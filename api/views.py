@@ -4,6 +4,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from .models import User
 import json
+import jwt
+import os
+from datetime import datetime, timedelta
 from django.contrib.auth.hashers import make_password, check_password
 
 @csrf_exempt
@@ -77,8 +80,16 @@ def signin(request):
             
             # Check password using the stored hashed password
             if check_password(data['password'], user.password):
+                # Generate JWT token
+                token = jwt.encode({
+                    'user_id': str(user._id),
+                    'email': user.email,
+                    'exp': datetime.utcnow() + timedelta(days=1)  # Token expires in 1 day
+                }, os.getenv('JWT_SECRET_KEY'), algorithm='HS256')
+                
                 return JsonResponse({
                     'message': 'Signin successful',
+                    'token': token,
                     'user': {
                         '_id': str(user._id),
                         'name': user.name,
